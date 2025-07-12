@@ -4,3 +4,4 @@ source venv/bin/activate && python -m uvicorn backend.main:app --host 0.0.0.0 --
 
 # start frontend
 
+npm run dev

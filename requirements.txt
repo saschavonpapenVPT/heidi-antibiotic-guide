@@ -9,3 +9,4 @@ PyPDF2==3.0.1
 python-multipart==0.0.6
 pydantic==2.5.0
 requests==2.31.0
+httpx==0.25.2

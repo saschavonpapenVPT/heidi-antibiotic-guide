@@ -17,8 +17,8 @@ export default function Home() {
     setResponse('')
 
     try {
-      // Connect directly to backend running on port 8003
-      const apiUrl = 'http://localhost:8003'
+      // Connect directly to backend running on port 8004
+      const apiUrl = 'http://localhost:8004'
       const response = await fetch(`${apiUrl}/ask-heidi`, {
         method: 'POST',
         headers: {
@@ -35,25 +35,29 @@ export default function Home() {
 
       const data = await response.json()
       
-      // Format the response to show extractions nicely
-      let formattedResponse = `${data.message}\n\nExtractions from Heidi AI:\n\n`
+      // Format the response to show the Heidi analysis nicely
+      let formattedResponse = `${data.message}\n\n`
       
-      if (data.extractions) {
-        if (data.extractions.antibiotics) {
-          formattedResponse += `🦠 Antibiotics: ${data.extractions.antibiotics}\n\n`
-        }
-        if (data.extractions.patient_weight) {
-          formattedResponse += `⚖️ Patient Weight: ${data.extractions.patient_weight}\n\n`
-        }
-        if (data.extractions.allergies) {
-          formattedResponse += `⚠️ Allergies: ${data.extractions.allergies}\n\n`
-        }
-        if (data.extractions.diagnosis) {
-          formattedResponse += `🩺 Provisional Diagnosis: ${data.extractions.diagnosis}\n\n`
-        }
+      if (data.extracted_drugs && data.extracted_drugs.length > 0) {
+        formattedResponse += `💊 Extracted Drugs: ${data.extracted_drugs.join(', ')}\n\n`
+      } else {
+        formattedResponse += `💊 Extracted Drugs: None identified\n\n`
       }
       
-      formattedResponse += `\nReceived content: ${data.received_content}`
+      if (data.vector_context && data.vector_context.length > 0) {
+        formattedResponse += `📚 Found ${data.vector_context.length} relevant reference chunks\n\n`
+      }
+      
+      if (data.final_summary) {
+        formattedResponse += `🧠 Heidi's Clinical Summary:\n${data.final_summary}\n\n`
+      }
+      
+      if (data.processing_steps && data.processing_steps.length > 0) {
+        formattedResponse += `⚙️ Processing Steps:\n`
+        data.processing_steps.forEach((step, index) => {
+          formattedResponse += `${index + 1}. ${step}\n`
+        })
+      }
       
       setResponse(formattedResponse)
       console.log('Backend response:', data)
