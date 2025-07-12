@@ -4,8 +4,173 @@ import { useState } from 'react'
 
 export default function Home() {
   const [inputText, setInputText] = useState('')
-  const [response, setResponse] = useState('')
+  const [response, setResponse] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
+
+  const formatHeidiResponse = (data: any) => {
+    return (
+      <div style={{ 
+        color: '#374151', 
+        fontSize: '0.95rem', 
+        lineHeight: '1.6' 
+      }}>
+        {/* Status Message */}
+        <div style={{
+          backgroundColor: '#dcfce7',
+          border: '1px solid #bbf7d0',
+          borderRadius: '0.5rem',
+          padding: '1rem',
+          marginBottom: '1.5rem',
+          color: '#15803d'
+        }}>
+          <div style={{ 
+            fontWeight: '600', 
+            fontSize: '1rem',
+            marginBottom: '0.5rem'
+          }}>
+            ✅ {data.message}
+          </div>
+        </div>
+
+        {/* Extracted Drugs */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ 
+            fontSize: '1.1rem', 
+            fontWeight: '600', 
+            color: '#1f2937',
+            marginBottom: '0.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            💊 <span>Extracted Drugs</span>
+          </div>
+          <div style={{
+            backgroundColor: '#fef3c7',
+            border: '1px solid #fcd34d',
+            borderRadius: '0.375rem',
+            padding: '0.75rem',
+            color: '#92400e',
+            fontWeight: '500'
+          }}>
+            {data.extracted_drugs && data.extracted_drugs.length > 0 
+              ? data.extracted_drugs.join(', ') 
+              : 'None identified'
+            }
+          </div>
+        </div>
+
+        {/* Vector Context */}
+        {data.vector_context && data.vector_context.length > 0 && (
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ 
+              fontSize: '1.1rem', 
+              fontWeight: '600', 
+              color: '#1f2937',
+              marginBottom: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              📚 <span>Reference Database</span>
+            </div>
+            <div style={{
+              backgroundColor: '#e0e7ff',
+              border: '1px solid #c7d2fe',
+              borderRadius: '0.375rem',
+              padding: '0.75rem',
+              color: '#3730a3',
+              fontWeight: '500'
+            }}>
+              Found {data.vector_context.length} relevant reference chunks
+            </div>
+          </div>
+        )}
+
+        {/* Clinical Summary */}
+        {data.final_summary && (
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ 
+              fontSize: '1.1rem', 
+              fontWeight: '600', 
+              color: '#1f2937',
+              marginBottom: '0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              🧠 <span>Heidi's Clinical Summary</span>
+            </div>
+            <div style={{
+              backgroundColor: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              borderRadius: '0.5rem',
+              padding: '1.25rem',
+              color: '#0c4a6e',
+              whiteSpace: 'pre-wrap',
+              lineHeight: '1.7'
+            }}>
+              {data.final_summary}
+            </div>
+            <div style={{
+              marginTop: '0.75rem',
+              padding: '0.75rem',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '0.375rem',
+              fontSize: '0.875rem',
+              color: '#991b1b',
+              fontStyle: 'italic',
+              textAlign: 'center'
+            }}>
+              ⚠️ This information may not be up to date and does not constitute medical advice, diagnosis, or treatment recommendations.
+            </div>
+          </div>
+        )}
+
+        {/* Processing Steps */}
+        {data.processing_steps && data.processing_steps.length > 0 && (
+          <div>
+            <div style={{ 
+              fontSize: '1.1rem', 
+              fontWeight: '600', 
+              color: '#1f2937',
+              marginBottom: '0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              ⚙️ <span>Processing Steps</span>
+            </div>
+            <div style={{
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '0.5rem',
+              padding: '1rem'
+            }}>
+              {data.processing_steps.map((step: string, index: number) => (
+                <div key={index} style={{
+                  padding: '0.5rem 0',
+                  borderBottom: index < data.processing_steps.length - 1 ? '1px solid #e2e8f0' : 'none',
+                  color: '#475569',
+                  fontSize: '0.9rem'
+                }}>
+                  <span style={{ 
+                    fontWeight: '600', 
+                    color: '#334155',
+                    marginRight: '0.5rem' 
+                  }}>
+                    {index + 1}.
+                  </span>
+                  {step}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const handleSubmit = async () => {
     if (!inputText.trim()) {
@@ -14,7 +179,7 @@ export default function Home() {
     }
 
     setIsLoading(true)
-    setResponse('')
+    setResponse(null)
 
     try {
       // Connect directly to backend running on port 8004
@@ -35,36 +200,13 @@ export default function Home() {
 
       const data = await response.json()
       
-      // Format the response to show the Heidi analysis nicely
-      let formattedResponse = `${data.message}\n\n`
-      
-      if (data.extracted_drugs && data.extracted_drugs.length > 0) {
-        formattedResponse += `💊 Extracted Drugs: ${data.extracted_drugs.join(', ')}\n\n`
-      } else {
-        formattedResponse += `💊 Extracted Drugs: None identified\n\n`
-      }
-      
-      if (data.vector_context && data.vector_context.length > 0) {
-        formattedResponse += `📚 Found ${data.vector_context.length} relevant reference chunks\n\n`
-      }
-      
-      if (data.final_summary) {
-        formattedResponse += `🧠 Heidi's Clinical Summary:\n${data.final_summary}\n\n`
-      }
-      
-      if (data.processing_steps && data.processing_steps.length > 0) {
-        formattedResponse += `⚙️ Processing Steps:\n`
-        data.processing_steps.forEach((step, index) => {
-          formattedResponse += `${index + 1}. ${step}\n`
-        })
-      }
-      
-      setResponse(formattedResponse)
+      // Store the response data for formatting
+      setResponse(data)
       console.log('Backend response:', data)
       
     } catch (error) {
       console.error('Error calling backend:', error)
-      setResponse('Error: Failed to connect to backend API')
+      setResponse({ message: 'Error: Failed to connect to backend API', error: true })
     } finally {
       setIsLoading(false)
     }
@@ -133,22 +275,24 @@ export default function Home() {
             placeholder="Paste your medical information here..."
             style={{
               flex: 1,
-              width: '100%',
+              width: 'calc(100% - 2rem)',
+              maxWidth: '100%',
               padding: '1rem',
               border: '1px solid #d1d5db',
               borderRadius: '0.5rem',
               resize: 'none',
               outline: 'none',
               color: '#374151',
-              fontSize: '1rem'
+              fontSize: '1rem',
+              boxSizing: 'border-box'
             }}
             onFocus={(e) => {
-              e.target.style.borderColor = '#3b82f6'
-              e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)'
+              (e.target as HTMLTextAreaElement).style.borderColor = '#3b82f6';
+              (e.target as HTMLTextAreaElement).style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)'
             }}
             onBlur={(e) => {
-              e.target.style.borderColor = '#d1d5db'
-              e.target.style.boxShadow = 'none'
+              (e.target as HTMLTextAreaElement).style.borderColor = '#d1d5db';
+              (e.target as HTMLTextAreaElement).style.boxShadow = 'none'
             }}
           />
           <button
@@ -168,14 +312,14 @@ export default function Home() {
             }}
             onMouseEnter={(e) => {
               if (!isLoading) {
-                e.target.style.backgroundColor = '#1d4ed8'
-                e.target.style.transform = 'scale(1.05)'
+                (e.target as HTMLButtonElement).style.backgroundColor = '#1d4ed8';
+                (e.target as HTMLButtonElement).style.transform = 'scale(1.05)'
               }
             }}
             onMouseLeave={(e) => {
               if (!isLoading) {
-                e.target.style.backgroundColor = '#2563eb'
-                e.target.style.transform = 'scale(1)'
+                (e.target as HTMLButtonElement).style.backgroundColor = '#2563eb';
+                (e.target as HTMLButtonElement).style.transform = 'scale(1)'
               }
             }}
           >
@@ -203,17 +347,10 @@ export default function Home() {
           
           {response ? (
             <div style={{
-              backgroundColor: '#f9fafb',
-              border: '1px solid #e5e7eb',
-              borderRadius: '0.5rem',
-              padding: '1rem',
               flex: 1,
-              whiteSpace: 'pre-wrap',
-              color: '#374151',
-              fontSize: '0.9rem',
               overflowY: 'auto'
             }}>
-              {response}
+              {formatHeidiResponse(response)}
             </div>
           ) : (
             <div style={{

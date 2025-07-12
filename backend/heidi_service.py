@@ -130,18 +130,52 @@ class HeidiService:
                         else:
                             full_response = str(json_data)
                     except json.JSONDecodeError:
-                        # Handle as streamed response
+                        # Handle as Server-Sent Events (SSE) streamed response
                         for line in response.text.split('\n'):
-                            if line.strip():
+                            line = line.strip()
+                            if not line:
+                                continue
+                                
+                            # Handle SSE format: "data: {json}"
+                            if line.startswith('data: '):
+                                sse_data = line[6:]  # Remove "data: " prefix
+                                try:
+                                    data = json.loads(sse_data)
+                                    # Extract the actual text content
+                                    if isinstance(data, dict):
+                                        if 'data' in data:
+                                            full_response += data['data']
+                                        elif 'content' in data:
+                                            full_response += data['content']
+                                        elif 'response' in data:
+                                            full_response += data['response']
+                                        elif 'message' in data:
+                                            full_response += data['message']
+                                        else:
+                                            # Try to get any string value from the object
+                                            for key, value in data.items():
+                                                if isinstance(value, str) and value.strip():
+                                                    full_response += value
+                                    elif isinstance(data, str):
+                                        full_response += data
+                                except json.JSONDecodeError:
+                                    # If not valid JSON after "data: ", treat as plain text
+                                    full_response += sse_data
+                            else:
+                                # Handle other line formats
                                 try:
                                     data = json.loads(line)
-                                    if 'data' in data:
-                                        full_response += data['data']
-                                    elif 'response' in data:
-                                        full_response += data['response']
+                                    if isinstance(data, dict):
+                                        if 'data' in data:
+                                            full_response += data['data']
+                                        elif 'response' in data:
+                                            full_response += data['response']
+                                    elif isinstance(data, str):
+                                        full_response += data
                                 except json.JSONDecodeError:
-                                    # If not JSON, treat as plain text
-                                    full_response += line + "\n"
+                                    # If not JSON, treat as plain text (but skip common SSE markers)
+                                    if not line.startswith(('event:', 'id:', 'retry:')):
+                                        full_response += line + "\n"
                     
                     # If still empty, use the raw response text
                     if not full_response.strip():
@@ -177,8 +211,12 @@ class HeidiService:
             # Parse the response to extract drug names
             drugs = []
             
-            # Clean up the response
+            # Clean up the response - remove any JSON formatting artifacts
             response = response.strip()
+            
+            # Remove any remaining data formatting artifacts
+            response = response.replace('Data: {"Data": "', '').replace('"}', '')
+            response = response.replace('data: {"data": "', '').replace('"}', '')
             
             # Handle simple cases first
             if response.lower() in ['none', 'no drugs', 'no medications', 'no drugs found']:
